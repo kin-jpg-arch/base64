@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+
+  <head>
+    <meta charset="UTF-8">
+    <title>Untitled</title>
+    
+
+  </head>
+    
+  <body>
+  <!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Base64 통합 변환기 - 반응형</title>
+    <!-- Tailwind CSS (CDN) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* 커스텀 스크롤바 */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: rgba(255, 255, 255, 0.05); }
+        ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.2); border-radius: 3px; }
+        
+        /* 글래스모피즘 효과 */
+        .glass-panel {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .glass-input {
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #f8fafc;
+        }
+        
+        .glass-input:focus {
+            outline: none;
+            border-color: rgba(99, 102, 241, 0.6);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+        }
+
+        /* 탭 전환 애니메이션 */
+        .tab-content {
+            display: none;
+            opacity: 0;
+            transform: translateY(8px);
+            transition: all 0.3s ease;
+        }
+        .tab-content.active {
+            display: flex;
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* 이미지 배경 패턴 */
+        .checkered-bg {
+            background-image: linear-gradient(45deg, #0f172a 25%, transparent 25%), 
+                              linear-gradient(-45deg, #0f172a 25%, transparent 25%), 
+                              linear-gradient(45deg, transparent 75%, #0f172a 75%), 
+                              linear-gradient(-45deg, transparent 75%, #0f172a 75%);
+            background-size: 16px 16px;
+            background-color: #1e293b;
+        }
+
+        /* 탭 가로 스크롤 숨기기 */
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+</head>
+<body class="min-h-screen bg-slate-950 text-slate-200 font-sans selection:bg-indigo-500/40">
+
+    <!-- 메인 컨테이너 -->
+    <div class="flex flex-col items-center justify-center min-h-screen p-2 sm:p-4 md:p-8">
+        
+        <div class="w-full max-w-6xl glass-panel rounded-2xl md:rounded-3xl overflow-hidden flex flex-col h-[95vh] max-h-[900px] shadow-2xl">
+            
+            <!-- 헤더 영역 -->
+            <header class="p-4 sm:p-6 border-b border-white/10 shrink-0 bg-slate-900/40">
+                <div class="flex flex-col lg:flex-row justify-between items-center gap-4">
+                    <div class="flex items-center gap-3 w-full lg:w-auto">
+                        <div class="p-2 bg-indigo-500/20 rounded-xl border border-indigo-500/30">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="text-indigo-400"><path d="m18 16 4-4-4-4"/><path d="m6 8-4 4 4 4"/><path d="m14.5 4-5 16"/></svg>
+                        </div>
+                        <div>
+                            <h1 class="text-lg sm:text-xl font-bold tracking-tight text-white">Base64 통합 변환기</h1>
+                            <p class="text-[10px] sm:text-xs text-slate-400">모든 기기 대응 반응형 도구</p>
+                        </div>
+                    </div>
+
+                    <!-- 탭 메뉴 -->
+                    <div class="w-full lg:w-auto overflow-x-auto hide-scrollbar">
+                        <nav class="flex p-1 bg-black/30 rounded-xl border border-white/5 min-w-max">
+                            <button id="tab-btn-text" class="px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all duration-200 bg-indigo-500/20 text-indigo-300" onclick="switchTab('text')">
+                                텍스트 변환
+                            </button>
+                            <button id="tab-btn-file" class="px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold text-slate-400 hover:text-slate-200 transition-all duration-200" onclick="switchTab('file')">
+                                파일 인코딩
+                            </button>
+                            <button id="tab-btn-img" class="px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold text-slate-400 hover:text-slate-200 transition-all duration-200" onclick="switchTab('img')">
+                                이미지 복원
+                            </button>
+                        </nav>
+                    </div>
+                </div>
+            </header>
+
+            <!-- 메인 컨텐츠 영역 -->
+            <main class="flex-1 overflow-hidden p-4 sm:p-6 relative">
+                
+                <!-- [1] 텍스트 모드 -->
+                <div id="view-text" class="tab-content active h-full flex-col">
+                    <div class="flex justify-between items-center mb-3 shrink-0">
+                        <div class="flex gap-1 bg-slate-800/60 p-1 rounded-lg">
+                            <button id="btn-encode" class="px-3 py-1.5 rounded-md text-xs font-bold transition-all bg-indigo-500/40 text-white" onclick="setTextDirection('encode')">인코딩</button>
+                            <button id="btn-decode" class="px-3 py-1.5 rounded-md text-xs font-bold transition-all text-slate-400 hover:text-white" onclick="setTextDirection('decode')">디코딩</button>
+                        </div>
+                        <button onclick="clearText()" class="text-[11px] font-bold text-rose-400 uppercase tracking-tighter">Clear</button>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 flex-1 min-h-0">
+                        <textarea id="text-input" class="glass-input rounded-xl p-4 resize-none text-sm leading-relaxed" placeholder="변환할 내용을 입력하세요..."></textarea>
+                        <div class="relative flex flex-col h-full">
+                            <textarea id="text-output" class="glass-input flex-1 rounded-xl p-4 resize-none text-sm leading-relaxed" readonly placeholder="결과가 여기에 표시됩니다..."></textarea>
+                            <button onclick="copyToClipboard('text-output')" class="absolute bottom-3 right-3 p-3 bg-indigo-500 hover:bg-indigo-600 text-white rounded-xl shadow-lg transition-all active:scale-95">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- [2] 파일 인코딩 -->
+                <div id="view-file" class="tab-content h-full flex-col">
+                    <div class="grid grid-cols-1 lg:grid-cols-5 gap-4 h-full min-h-0">
+                        <div class="lg:col-span-2 flex flex-col h-full">
+                            <div id="dropzone" class="flex-1 border-2 border-dashed border-slate-700 rounded-2xl bg-slate-900/40 flex flex-col items-center justify-center p-4 cursor-pointer hover:border-indigo-500/50 hover:bg-indigo-500/5 transition-all relative">
+                                <input type="file" id="file-input" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
+                                <div class="p-3 bg-indigo-500/10 rounded-full mb-2">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-indigo-400"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>
+                                </div>
+                                <p class="text-xs sm:text-sm font-semibold text-slate-300">파일 업로드</p>
+                                <p class="text-[10px] text-slate-500 mt-1 hidden sm:block">드래그 앤 드롭 지원</p>
+                            </div>
+                        </div>
+                        <div class="lg:col-span-3 flex flex-col relative h-full">
+                            <textarea id="file-output" class="glass-input w-full h-full rounded-xl p-4 resize-none font-mono text-[10px] break-all" readonly placeholder="Base64 결과..."></textarea>
+                            <button onclick="copyToClipboard('file-output')" class="absolute bottom-3 right-3 p-3 bg-indigo-500 hover:bg-indigo-600 text-white rounded-xl shadow-lg transition-all active:scale-95">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- [3] 이미지 복원 -->
+                <div id="view-img" class="tab-content h-full flex-col">
+                    <div class="grid grid-cols-1 lg:grid-cols-5 gap-4 h-full min-h-0">
+                        <div class="lg:col-span-2 flex flex-col gap-3">
+                            <label class="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Base64 Input</label>
+                            <textarea id="img-decode-input" class="glass-input flex-1 rounded-xl p-4 resize-none font-mono text-[10px] break-all" placeholder="Base64 문자열을 붙여넣으세요..."></textarea>
+                            <button onclick="clearImgView()" class="py-2.5 text-xs font-bold text-rose-400 border border-rose-500/20 rounded-xl hover:bg-rose-500/10 transition">데이터 초기화</button>
+                        </div>
+                        <div class="lg:col-span-3 flex flex-col h-full min-h-[300px]">
+                            <div class="flex justify-between items-center mb-2">
+                                <label class="text-xs font-bold text-indigo-400 uppercase tracking-widest ml-1">Preview</label>
+                                <button id="download-btn" onclick="downloadRestoredImg()" class="hidden text-[10px] sm:text-xs bg-indigo-500 hover:bg-indigo-600 text-white px-3 py-1.5 rounded-lg transition-all items-center gap-1.5 font-bold">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+                                    DOWNLOAD
+                                </button>
+                            </div>
+                            <div class="flex-1 rounded-2xl glass-input p-2 flex items-center justify-center checkered-bg relative overflow-hidden">
+                                <img id="restored-img-preview" src="" class="hidden max-w-full max-h-full object-contain z-10 shadow-2xl" />
+                                <div id="img-placeholder" class="text-slate-600 flex flex-col items-center gap-3">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="opacity-30"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
+                                    <p class="text-xs font-medium opacity-50">이미지 미리보기</p>
+                                </div>
+                            </div>
+                            <p id="img-error-msg" class="hidden text-center text-rose-400 text-[10px] mt-2 font-bold uppercase tracking-tighter">유효하지 않은 데이터 형식</p>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- 복사 성공 알림 -->
+    <div id="toast" class="fixed bottom-6 sm:bottom-10 left-1/2 -translate-x-1/2 bg-white text-slate-900 px-6 py-3 rounded-2xl shadow-2xl transform translate-y-32 opacity-0 transition-all duration-500 font-bold z-50 text-xs sm:text-sm flex items-center gap-2">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" class="text-emerald-500"><polyline points="20 6 9 17 4 12"/></svg>
+        클립보드에 복사되었습니다
+    </div>
+
+    <script>
+        // --- 탭 관리 ---
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(v => v.classList.remove('active'));
+            document.getElementById('view-' + tabId).classList.add('active');
+
+            const btns = { text: 'tab-btn-text', file: 'tab-btn-file', img: 'tab-btn-img' };
+            Object.keys(btns).forEach(key => {
+                const btn = document.getElementById(btns[key]);
+                if (key === tabId) {
+                    btn.className = "px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all duration-200 bg-indigo-500/20 text-indigo-300";
+                } else {
+                    btn.className = "px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold text-slate-400 hover:text-slate-200 transition-all duration-200";
+                }
+            });
+        }
+
+        // --- 텍스트 모드 ---
+        let textDirection = 'encode';
+        const textIn = document.getElementById('text-input');
+        const textOut = document.getElementById('text-output');
+        
+        function setTextDirection(dir) {
+            textDirection = dir;
+            document.getElementById('btn-encode').className = dir === 'encode' ? "px-3 py-1.5 rounded-md text-xs font-bold transition-all bg-indigo-500/40 text-white" : "px-3 py-1.5 rounded-md text-xs font-bold transition-all text-slate-400 hover:text-white";
+            document.getElementById('btn-decode').className = dir === 'decode' ? "px-3 py-1.5 rounded-md text-xs font-bold transition-all bg-indigo-500/40 text-white" : "px-3 py-1.5 rounded-md text-xs font-bold transition-all text-slate-400 hover:text-white";
+            textIn.placeholder = dir === 'encode' ? "인코딩할 텍스트 입력..." : "디코딩할 Base64 코드 입력...";
+            handleText();
+        }
+
+        function handleText() {
+            const val = textIn.value.trim();
+            if (!val) { textOut.value = ""; return; }
+            try {
+                if (textDirection === 'encode') {
+                    const bytes = new TextEncoder().encode(val);
+                    const bin = Array.from(bytes, b => String.fromCodePoint(b)).join("");
+                    textOut.value = btoa(bin);
+                } else {
+                    const bin = atob(val);
+                    const bytes = Uint8Array.from(bin, m => m.codePointAt(0));
+                    textOut.value = new TextDecoder().decode(bytes);
+                }
+            } catch (e) { textOut.value = "오류: 올바르지 않은 형식입니다."; }
+        }
+        textIn.addEventListener('input', handleText);
+        function clearText() { textIn.value = ""; textOut.value = ""; }
+
+        // --- 파일 인코딩 ---
+        const fileIn = document.getElementById('file-input');
+        const fileOut = document.getElementById('file-output');
+        fileIn.addEventListener('change', (e) => {
+            if (!e.target.files.length) return;
+            const reader = new FileReader();
+            reader.onload = (ev) => fileOut.value = ev.target.result;
+            reader.readAsDataURL(e.target.files[0]);
+        });
+
+        // --- 이미지 복원 ---
+        const imgInput = document.getElementById('img-decode-input');
+        const imgPreview = document.getElementById('restored-img-preview');
+        const imgPlaceholder = document.getElementById('img-placeholder');
+        const imgError = document.getElementById('img-error-msg');
+        const downloadBtn = document.getElementById('download-btn');
+
+        imgInput.addEventListener('input', () => {
+            const raw = imgInput.value.trim();
+            if (!raw) { clearImgView(); return; }
+
+            let src = raw;
+            if (!raw.startsWith('data:')) {
+                src = `data:image/png;base64,${raw}`;
+            }
+
+            imgPreview.onload = () => {
+                imgPreview.classList.remove('hidden');
+                imgPlaceholder.classList.add('hidden');
+                imgError.classList.add('hidden');
+                downloadBtn.classList.replace('hidden', 'flex');
+            };
+
+            imgPreview.onerror = () => {
+                if (!raw.startsWith('data:')) {
+                    const fallback = `data:image/jpeg;base64,${raw}`;
+                    const temp = new Image();
+                    temp.onload = () => { imgPreview.src = fallback; };
+                    temp.onerror = showImgError;
+                    temp.src = fallback;
+                } else { showImgError(); }
+            };
+
+            imgPreview.src = src;
+        });
+
+        function showImgError() {
+            imgPreview.classList.add('hidden');
+            imgPlaceholder.classList.remove('hidden');
+            imgError.classList.remove('hidden');
+            downloadBtn.classList.replace('flex', 'hidden');
+        }
+
+        function clearImgView() {
+            imgInput.value = "";
+            imgPreview.src = "";
+            imgPreview.classList.add('hidden');
+            imgPlaceholder.classList.remove('hidden');
+            imgError.classList.add('hidden');
+            downloadBtn.classList.replace('flex', 'hidden');
+        }
+
+        function downloadRestoredImg() {
+            if (!imgPreview.src) return;
+            const link = document.createElement('a');
+            link.href = imgPreview.src;
+            link.download = `decoded_image_${Date.now()}.png`;
+            link.click();
+        }
+
+        // --- 클립보드 복사 (iframe 대응) ---
+        async function copyToClipboard(id) {
+            const el = document.getElementById(id);
+            if (!el.value || el.value.startsWith('오류:')) return;
+
+            try {
+                if (navigator.clipboard && window.isSecureContext) {
+                    await navigator.clipboard.writeText(el.value);
+                    showToast();
+                } else {
+                    fallbackCopy(el);
+                }
+            } catch (err) { fallbackCopy(el); }
+        }
+
+        function fallbackCopy(textArea) {
+            try {
+                textArea.select();
+                const successful = document.execCommand('copy');
+                if (successful) showToast();
+                window.getSelection().removeAllRanges();
+            } catch (err) {}
+        }
+
+        function showToast() {
+            const toast = document.getElementById('toast');
+            toast.classList.remove('translate-y-32', 'opacity-0');
+            setTimeout(() => toast.classList.add('translate-y-32', 'opacity-0'), 2500);
+        }
+    </script>
+</body>
+</html>
+    
+  </body>
+  
+</html>
